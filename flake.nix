@@ -31,8 +31,10 @@
             dune_3
             ocamlPackages.utop
             ocamlPackages.core
+            ocamlPackages.base
             ocamlPackages.mirage
             ocamlPackages.ocaml-lsp
+            ocamlPackages.ounit2
           ];
         };
       });

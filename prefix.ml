@@ -1,23 +1,6 @@
 open Base
 
-module IP : sig
-  type t
-  
-  (** Parse an ipv4 from dotted quad **)
-  val of_string : string -> t
-
-  (** Print an ipv4 address as dotted quad **)
-  val to_string : t -> string
-
-  (** Implements compare pattern for ips **)
-  val eq: t -> t -> bool
-
-  (** Apply the given prefix to t **)
-  val mask: t -> int -> t
-
-  (** Inrement t by x ips **)
-  val incr: t -> int -> t
-end = struct
+module IP = struct
   type t = int
 
   (* fold helper to turn a string into an int *)
@@ -40,27 +23,14 @@ end = struct
   let eq lhs rhs = Int.compare lhs rhs = 0
 end
 
-module Prefix : sig
-  type t
-  (** Parse an ipv4 CIDR notation **)
-  val of_string: string -> t
-
-  (** Return a prefix as CIDR notation **)
-  val to_string: t -> string
-
-  val eq: t -> t -> bool
-
-  val contains: t -> IP.t -> bool
-  val covers: t -> t -> bool
-  val split: t -> t list
-end = struct 
+module Prefix = struct
   type t = {host: IP.t; pfix: int}
 
   let contains t ip = IP.eq t.host (IP.mask ip t.pfix)
 
-  let covers lhs rhs = (IP.eq lhs.host (IP.mask rhs.host lhs.pfix)) && (lhs.pfix < rhs.pfix)
+  let covers lhs rhs = (IP.eq lhs.host (IP.mask rhs.host lhs.pfix)) && (lhs.pfix <= rhs.pfix)
 
-  let eq lhs rhs = IP.eq lhs.host rhs.host && rhs.pfix = rhs.pfix
+  let eq lhs rhs = IP.eq lhs.host rhs.host && lhs.pfix = rhs.pfix
 
   let split t = 
     [
@@ -78,24 +48,22 @@ end = struct
   let to_string t = IP.to_string t.host ^ "/" ^ Int.to_string t.pfix
 end
 
-module PrefixList : sig
-  type t
-  val add: t -> Prefix.t -> t
-  val rem: t -> Prefix.t -> t
-  val contains: t -> Prefix.t -> bool
-end = struct
+module PrefixList = struct
   type t = Prefix.t list
 
-  let add t pfix = (pfix :: t)
+  let empty = []
 
-  let contains t pfix = List.exists t ~f:(Prefix.eq pfix)
-  
-  let rec rem (t: Prefix.t list) pfix = 
+  let add (t: Prefix.t list) ~p:pfix = (pfix :: t)
+
+  let rec rem t ~p:pfix = 
   let open Prefix in 
   let open List in 
     match t with
     | [] as l -> l 
     | hd :: tl when eq hd pfix -> tl
-    | hd :: tl when covers hd pfix -> rem (append (split hd) tl) pfix
-    | hd :: tl -> hd :: rem tl pfix
+    | hd :: tl when covers hd pfix -> rem (append (split hd) tl) ~p:pfix
+    | hd :: tl -> hd :: rem tl ~p:pfix
+
+  (** todo there is a fancy thing to do this without a closure**)
+  let contains t pfix = List.exists t ~f:(fun p -> Prefix.covers p pfix) 
 end
