@@ -26,9 +26,9 @@ end
 module Prefix = struct
   type t = {host: IP.t; pfix: int}
 
-  let contains t ip = IP.eq t.host (IP.mask ip t.pfix)
+  let contains t ip = IP.eq t.host @@ IP.mask ip t.pfix
 
-  let covers lhs rhs = (IP.eq lhs.host (IP.mask rhs.host lhs.pfix)) && (lhs.pfix <= rhs.pfix)
+  let covers lhs rhs = (IP.eq lhs.host @@ IP.mask rhs.host lhs.pfix) && lhs.pfix <= rhs.pfix
 
   let eq lhs rhs = IP.eq lhs.host rhs.host && lhs.pfix = rhs.pfix
 
